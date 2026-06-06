@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f5f0e8">
+<title>Focus</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f0e8;
+    --card: #ede8df;
+    --surface: #e5dfd5;
+    --border: #d4cec4;
+    --text: #2c2820;
+    --muted: #9c9488;
+    --accent: #c17f4a;
+    --btn-bg: #2c2820;
+    --btn-text: #f5f0e8;
+    --dot-empty: #d4cec4;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bot: env(safe-area-inset-bottom, 0px);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    overscroll-behavior: none;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Lato', sans-serif;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: calc(var(--safe-top) + 24px) 20px calc(var(--safe-bot) + 24px);
+    overflow-x: hidden;
+  }
+
+  .page {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    flex: 1;
+  }
+
+  /* Header */
+  .header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .app-name {
+    font-family: 'DM Serif Display', serif;
+    font-style: italic;
+    font-size: 20px;
+    color: var(--text);
+  }
+
+  .header-btn {
+    background: var(--surface);
+    border: none;
+    color: var(--muted);
+    font-family: 'Lato', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .header-btn:active { opacity: 0.7; }
+
+  /* Mode pills */
+  .modes {
+    display: flex;
+    gap: 6px;
+    background: var(--surface);
+    border-radius: 999px;
+    padding: 5px;
+    width: 100%;
+  }
+
+  .mode-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'Lato', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.3px;
+    padding: 10px 8px;
+    cursor: pointer;
+    border-radius: 999px;
+    transition: all 0.25s ease;
+    text-align: center;
+  }
+
+  .mode-btn.active {
+    background: var(--bg);
+    color: var(--text);
+    font-weight: 700;
+    box-shadow: 0 1px 6px rgba(44,40,32,0.12);
+  }
+
+  /* Timer card */
+  .timer-card {
+    background: var(--card);
+    border-radius: 32px;
+    padding: 32px 24px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    box-shadow: 0 2px 24px rgba(44,40,32,0.08), 0 0 0 1px var(--border);
+  }
+
+  .session-label {
+    font-family: 'DM Serif Display', serif;
+    font-style: italic;
+    font-size: 15px;
+    color: var(--muted);
+    transition: color 0.3s;
+  }
+
+  /* Ring */
+  .ring-wrap {
+    position: relative;
+    width: min(240px, 56vw);
+    height: min(240px, 56vw);
+    margin: 4px 0;
+  }
+
+  .ring-svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+  }
+
+  .ring-track { fill: none; stroke: var(--border); stroke-width: 5; }
+
+  .ring-fill {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-dasharray: 565;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 0.95s linear, stroke 0.4s ease;
+  }
+
+  .ring-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .time-big {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(44px, 12vw, 62px);
+    color: var(--text);
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+
+  .time-sub {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  /* Dots */
+  .dots {
+    display: flex;
+    gap: 8px;
+    margin-top: 2px;
+  }
+
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--dot-empty);
+    transition: background 0.3s, transform 0.3s;
+  }
+
+  .dot.done { background: var(--accent); transform: scale(1.1); }
+  .dot.current { background: var(--accent); transform: scale(1.3); box-shadow: 0 0 0 3px rgba(193,127,74,0.2); }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 4px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .btn-ghost {
+    background: none;
+    border: 1.5px solid var(--border);
+    color: var(--muted);
+    font-family: 'Lato', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 13px 20px;
+    cursor: pointer;
+    border-radius: 999px;
+    transition: all 0.2s;
+    min-width: 72px;
+    text-align: center;
+  }
+
+  .btn-ghost:active { background: var(--surface); }
+
+  .btn-main {
+    background: var(--btn-bg);
+    color: var(--btn-text);
+    border: none;
+    font-family: 'Lato', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    padding: 16px 44px;
+    cursor: pointer;
+    border-radius: 999px;
+    transition: all 0.15s;
+    text-transform: uppercase;
+    flex: 1;
+    max-width: 200px;
+  }
+
+  .btn-main:active { transform: scale(0.96); opacity: 0.85; }
+  .btn-main.paused { background: var(--surface); color: var(--text); border: 1.5px solid var(--border); }
+
+  /* Stats */
+  .stats-row {
+    display: flex;
+    width: 100%;
+    background: var(--surface);
+    border-radius: 18px;
+    overflow: hidden;
+  }
+
+  .stat-item {
+    flex: 1;
+    text-align: center;
+    padding: 14px 8px;
+    border-right: 1px solid var(--border);
+  }
+
+  .stat-item:last-child { border-right: none; }
+
+  .stat-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .stat-lbl {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+
+  /* Log */
+  .log-wrap { width: 100%; }
+
+  .log-header {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    padding: 0 4px;
+  }
+
+  .log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-height: 130px;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+
+  .log-list::-webkit-scrollbar { display: none; }
+
+  .log-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--card);
+    border-radius: 12px;
+    padding: 10px 14px;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .log-time { font-size: 12px; color: var(--muted); }
+
+  .log-pill {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 3px 12px;
+    border-radius: 999px;
+    background: rgba(193,127,74,0.12);
+    color: var(--accent);
+    transition: all 0.3s;
+  }
+
+  .log-pill.brk { background: rgba(90,138,106,0.12); color: #5a8a6a; }
+
+  /* Settings sheet */
+  .sheet-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(44,40,32,0.3);
+    z-index: 10;
+    backdrop-filter: blur(2px);
+  }
+
+  .sheet-backdrop.open { display: block; }
+
+  .sheet {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--bg);
+    border-radius: 28px 28px 0 0;
+    padding: 12px 24px calc(var(--safe-bot) + 28px);
+    z-index: 11;
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    max-height: 85dvh;
+    overflow-y: auto;
+  }
+
+  .sheet.open { transform: translateY(0); }
+
+  .sheet-handle {
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 20px;
+  }
+
+  .sheet-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px;
+    color: var(--text);
+    margin-bottom: 20px;
+  }
+
+  .setting-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .setting-item label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .setting-item label span { color: var(--accent); font-size: 13px; }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 24px; height: 24px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(193,127,74,0.35);
+  }
+
+  .sheet-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  .sheet-btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 999px;
+    font-family: 'Lato', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    background: none;
+    color: var(--muted);
+    transition: all 0.2s;
+  }
+
+  .sheet-btn.primary {
+    background: var(--btn-bg);
+    color: var(--btn-text);
+    border-color: var(--btn-bg);
+  }
+
+  .sheet-btn:active { opacity: 0.7; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="app-name">Focus</div>
+    <button class="header-btn" onclick="openSheet()">⚙ Settings</button>
+  </div>
+
+  <!-- Modes -->
+  <div class="modes">
+    <button class="mode-btn active" id="mWork"  onclick="switchMode('work')">Focus</button>
+    <button class="mode-btn"        id="mShort" onclick="switchMode('short')">Break</button>
+    <button class="mode-btn"        id="mLong"  onclick="switchMode('long')">Long Break</button>
+  </div>
+
+  <!-- Timer card -->
+  <div class="timer-card">
+    <div class="session-label" id="sessionLabel">Focus Session</div>
+
+    <div class="ring-wrap">
+      <svg class="ring-svg" viewBox="0 0 200 200">
+        <circle class="ring-track" cx="100" cy="100" r="90"/>
+        <circle class="ring-fill"  id="ringFill" cx="100" cy="100" r="90"/>
+      </svg>
+      <div class="ring-center">
+        <div class="time-big" id="timeDisplay">25:00</div>
+        <div class="time-sub" id="timeSub">ready</div>
+      </div>
+    </div>
+
+    <div class="dots" id="dots"></div>
+
+    <div class="controls">
+      <button class="btn-ghost" onclick="resetTimer()">Reset</button>
+      <button class="btn-main" id="mainBtn" onclick="toggleTimer()">Start</button>
+      <button class="btn-ghost" onclick="skipForward()">Skip</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-item">
+      <div class="stat-num" id="sSessions">0</div>
+      <div class="stat-lbl">Sessions</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" id="sFocus">0</div>
+      <div class="stat-lbl">Min Focus</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" id="sBreaks">0</div>
+      <div class="stat-lbl">Breaks</div>
+    </div>
+  </div>
+
+  <!-- Log -->
+  <div class="log-wrap">
+    <div class="log-header">Session Log</div>
+    <div class="log-list" id="logList"></div>
+  </div>
+
+</div>
+
+<!-- Settings sheet backdrop -->
+<div class="sheet-backdrop" id="backdrop" onclick="closeSheet()"></div>
+
+<!-- Settings bottom sheet -->
+<div class="sheet" id="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Timer Settings</div>
+
+  <div class="setting-item">
+    <label>Focus Duration <span id="vWork">25</span> min</label>
+    <input type="range" min="5" max="90" value="25" id="rWork" oninput="onSetting('work',this.value)">
+  </div>
+
+  <div class="setting-item">
+    <label>Short Break <span id="vShort">5</span> min</label>
+    <input type="range" min="1" max="30" value="5" id="rShort" oninput="onSetting('short',this.value)">
+  </div>
+
+  <div class="setting-item">
+    <label>Long Break <span id="vLong">15</span> min</label>
+    <input type="range" min="5" max="60" value="15" id="rLong" oninput="onSetting('long',this.value)">
+  </div>
+
+  <div class="setting-item">
+    <label>Sessions per cycle <span id="vCycle">4</span></label>
+    <input type="range" min="2" max="8" value="4" id="rCycle" oninput="onSetting('cycle',this.value)">
+  </div>
+
+  <div class="sheet-actions">
+    <button class="sheet-btn" onclick="resetAll()">Reset Stats</button>
+    <button class="sheet-btn primary" onclick="closeSheet()">Done</button>
+  </div>
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────
+  const CIRC = 2 * Math.PI * 90; // 565.5
+  const COLORS = { work: '#c17f4a', short: '#5a8a6a', long: '#6a7aaa' };
+  const LABELS = { work: 'Focus Session', short: 'Short Break',  long: 'Long Break' };
+  const SUBS   = { work: 'stay locked in', short: 'take a breath', long: 'you earned it' };
+
+  const cfg = { work: 25, short: 5, long: 15, cycle: 4 };
+  let mode = 'work', running = false, ticker = null;
+  let totalSec = cfg.work * 60, remSec = totalSec;
+  let doneWork = 0, focusMin = 0, breaks = 0;
+
+  const ringFill = document.getElementById('ringFill');
+  ringFill.style.strokeDasharray = CIRC;
+
+  // ── Helpers ────────────────────────────────────
+  function fmt(s) {
+    return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+  }
+
+  function updateDisplay() {
+    document.getElementById('timeDisplay').textContent = fmt(remSec);
+    document.title = fmt(remSec) + ' · Focus';
+    ringFill.style.strokeDashoffset = CIRC * (remSec / totalSec);
+  }
+
+  function buildDots() {
+    const el = document.getElementById('dots');
+    el.innerHTML = '';
+    const pos = doneWork % cfg.cycle;
+    for (let i = 0; i < cfg.cycle; i++) {
+      const d = document.createElement('div');
+      d.className = 'dot' + (i < pos ? ' done' : i === pos && mode === 'work' ? ' current' : '');
+      el.appendChild(d);
+    }
+  }
+
+  function applyMode() {
+    const c = COLORS[mode];
+    document.documentElement.style.setProperty('--accent', c);
+    document.getElementById('sessionLabel').textContent = LABELS[mode];
+    document.getElementById('timeSub').textContent = SUBS[mode];
+    ringFill.style.stroke = c;
+    ['work','short','long'].forEach(m =>
+      document.getElementById('m' + m[0].toUpperCase() + m.slice(1))
+        .classList.toggle('active', m === mode)
+    );
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#f5f0e8');
+  }
+
+  // ── Timer ──────────────────────────────────────
+  function switchMode(m) {
+    mode = m;
+    clearInterval(ticker); running = false;
+    document.getElementById('mainBtn').textContent = 'Start';
+    document.getElementById('mainBtn').classList.remove('paused');
+    totalSec = (m === 'work' ? cfg.work : m === 'short' ? cfg.short : cfg.long) * 60;
+    remSec = totalSec;
+    applyMode(); buildDots(); updateDisplay();
+  }
+
+  function toggleTimer() {
+    if (running) {
+      clearInterval(ticker); running = false;
+      document.getElementById('mainBtn').textContent = 'Resume';
+      document.getElementById('mainBtn').classList.add('paused');
+      document.getElementById('timeSub').textContent = 'paused';
+    } else {
+      running = true;
+      document.getElementById('mainBtn').textContent = 'Pause';
+      document.getElementById('mainBtn').classList.remove('paused');
+      document.getElementById('timeSub').textContent = SUBS[mode];
+      ticker = setInterval(tick, 1000);
+    }
+  }
+
+  function tick() {
+    remSec--;
+    updateDisplay();
+    if (remSec <= 0) { clearInterval(ticker); running = false; onComplete(); }
+  }
+
+  function onComplete() {
+    playBeep(); vibrate();
+    if (mode === 'work') {
+      doneWork++; focusMin += cfg.work;
+      addLog('Focus', cfg.work + ' min', false);
+      document.getElementById('sSessions').textContent = doneWork;
+      document.getElementById('sFocus').textContent = focusMin;
+      switchMode(doneWork % cfg.cycle === 0 ? 'long' : 'short');
+    } else {
+      breaks++;
+      addLog('Break', (mode === 'short' ? cfg.short : cfg.long) + ' min', true);
+      document.getElementById('sBreaks').textContent = breaks;
+      switchMode('work');
+    }
+    buildDots();
+  }
+
+  function resetTimer() {
+    clearInterval(ticker); running = false;
+    document.getElementById('mainBtn').textContent = 'Start';
+    document.getElementById('mainBtn').classList.remove('paused');
+    totalSec = (mode === 'work' ? cfg.work : mode === 'short' ? cfg.short : cfg.long) * 60;
+    remSec = totalSec;
+    document.getElementById('timeSub').textContent = SUBS[mode];
+    updateDisplay();
+  }
+
+  function skipForward() { clearInterval(ticker); running = false; onComplete(); }
+
+  // ── Log ────────────────────────────────────────
+  function addLog(type, dur, isBreak) {
+    const list = document.getElementById('logList');
+    const now = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    const row = document.createElement('div');
+    row.className = 'log-row';
+    row.innerHTML = `<span class="log-time">${now} · ${dur}</span><span class="log-pill${isBreak?' brk':''}">${type}</span>`;
+    list.prepend(row);
+  }
+
+  // ── Audio + Haptics ───────────────────────────
+  function playBeep() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [0, 0.22, 0.44].forEach(d => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = 660; o.type = 'sine';
+        g.gain.setValueAtTime(0, ctx.currentTime + d);
+        g.gain.linearRampToValueAtTime(0.3, ctx.currentTime + d + 0.05);
+        g.gain.linearRampToValueAtTime(0, ctx.currentTime + d + 0.28);
+        o.start(ctx.currentTime + d); o.stop(ctx.currentTime + d + 0.3);
+      });
+    } catch(e) {}
+  }
+
+  function vibrate() {
+    try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch(e) {}
+  }
+
+  // ── Settings ───────────────────────────────────
+  function onSetting(key, val) {
+    val = parseInt(val);
+    cfg[key] = val;
+    const ids = {work:'vWork', short:'vShort', long:'vLong', cycle:'vCycle'};
+    document.getElementById(ids[key]).textContent = val;
+    if (!running) {
+      if ((key==='work'&&mode==='work')||(key==='short'&&mode==='short')||(key==='long'&&mode==='long')) {
+        totalSec = val * 60; remSec = totalSec; updateDisplay();
+      }
+      if (key === 'cycle') buildDots();
+    }
+  }
+
+  function openSheet() {
+    document.getElementById('sheet').classList.add('open');
+    document.getElementById('backdrop').classList.add('open');
+  }
+
+  function closeSheet() {
+    document.getElementById('sheet').classList.remove('open');
+    document.getElementById('backdrop').classList.remove('open');
+  }
+
+  function resetAll() {
+    doneWork = 0; focusMin = 0; breaks = 0;
+    document.getElementById('sSessions').textContent = 0;
+    document.getElementById('sFocus').textContent = 0;
+    document.getElementById('sBreaks').textContent = 0;
+    document.getElementById('logList').innerHTML = '';
+    buildDots(); resetTimer(); closeSheet();
+  }
+
+  // ── Service Worker ─────────────────────────────
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+
+  // ── Init ───────────────────────────────────────
+  applyMode(); buildDots(); updateDisplay();
+
+  // Keep screen awake while timer runs (where supported)
+  let wakeLock = null;
+  async function requestWakeLock() {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLock = await navigator.wakeLock.request('screen');
+      }
+    } catch(e) {}
+  }
+  requestWakeLock();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') requestWakeLock();
+  });
+</script>
+</body>
+</html>
